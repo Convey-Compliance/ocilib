@@ -702,10 +702,10 @@ boolean OCI_API OCI_Initialize
     unsigned int mode
 )
 {
-	OCI_LIB_CALL_DECL_VAR(boolean, FALSE)
-	OCI_LIB_CALL_CHECK_CTX(mode)
+    OCI_LIB_CALL_DECL_VAR(boolean, FALSE)
 
     unsigned int i = 0;
+    ub4 oci_mode;
 
 #ifdef OCI_IMPORT_RUNTIME
 
@@ -714,6 +714,8 @@ boolean OCI_API OCI_Initialize
     size_t len = (size_t) 0;
 
 #endif
+
+    OCI_LIB_CALL_CHECK_CTX(mode)
 
     /* check if it was already initialized */
 
@@ -1372,7 +1374,7 @@ boolean OCI_API OCI_Initialize
 
     /* Initialize OCI environment */
 
-    ub4 oci_mode = OCI_ENV_MODE | OCI_OBJECT;
+    oci_mode = OCI_ENV_MODE | OCI_OBJECT;
 
     /* check modes */
 
