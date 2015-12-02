@@ -50,7 +50,7 @@
 
 size_t OCI_StringLength
 (
-    void  *ptr,
+    const void  *ptr,
     size_t size_elem
 )
 {
@@ -136,7 +136,7 @@ boolean OCI_StringRequestBuffer
 
     if (!*buffer)
     {
-       *buffer = (otext *) OCI_MemAlloc(OCI_IPC_STRING, (size_t) request_size, (size_t) 1, TRUE);
+       *buffer = (otext *) OCI_MemAlloc(OCI_IPC_STRING, (size_t) request_size, (size_t) 1, FALSE);
     }
     else if (*buffer_size < request_size)
     {
@@ -482,6 +482,32 @@ boolean OCI_StringToStringPtr
     )
 
     OCI_StringReleaseOracleString(dbstr);
+
+    return res;
+}
+
+
+/* --------------------------------------------------------------------------------------------- *
+* OCI_StringFreeStringPtr
+* --------------------------------------------------------------------------------------------- */
+
+boolean OCI_StringFreeStringPtr
+(
+    OCIEnv      *env,
+    OCIString  **str,
+    OCIError    *err
+)
+{
+    boolean res = TRUE;
+
+    OCI_CHECK(NULL == str, FALSE);
+
+    OCI_CALL3
+    (
+        res, err,
+
+        OCIStringResize(env, err, (ub4)0, str)
+    )
 
     return res;
 }
