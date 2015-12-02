@@ -69,7 +69,7 @@ static unsigned int LongModeValues[]       = { OCI_LONG_EXPLICIT, OCI_LONG_IMPLI
        res = assign(dst, src);                                      \
     }                                                               \
 
-#define OCI_BIND_CALL(stmt, name, data, check, type, func)          \
+#define OCI_BIND_CALL(stmt, name, data, type, check, func)          \
                                                                     \
     OCI_LIB_CALL_ENTER(boolean, FALSE)                              \
                                                                     \
@@ -147,7 +147,7 @@ boolean OCI_BindCheck
 
     for(i = 0; i < stmt->nb_ubinds; i++)
     {
-        OCI_Bind *bnd = bnd = stmt->ubinds[i];
+        OCI_Bind *bnd = stmt->ubinds[i];
         sb2      *ind = (sb2 *) bnd->buffer.inds;
 
         if (OCI_CDT_CURSOR == bnd->type)
@@ -176,7 +176,8 @@ boolean OCI_BindCheck
             }
         }
 
-        if (bnd->direction & OCI_BDM_IN)
+        if ((bnd->direction & OCI_BDM_IN) ||
+            (bnd->alloc && OCI_CDT_DATETIME != bnd->type && OCI_CDT_TEXT != bnd->type && OCI_CDT_NUMERIC != bnd->type))
         {
             /* for strings, re-initialize length array with buffer default size */
 
@@ -409,7 +410,7 @@ boolean OCI_BindReset
                that can have output values
             */
 
-            if ((OCI_CST_BEGIN != stmt->type) && (OCI_CST_DECLARE != stmt->type))
+            if (!(OCI_IS_PLSQL_STMT(stmt->type)))
             {
                 memset(bnd->buffer.inds, 0, ((size_t) bnd->buffer.count) * sizeof(sb2));
             }
@@ -668,7 +669,7 @@ boolean OCI_BindData
         {
             /* is it a pl/sql table bind ? */
 
-            if ((OCI_CST_BEGIN == stmt->type) || (OCI_CST_DECLARE == stmt->type))
+            if (OCI_IS_PLSQL_STMT(stmt->type))
             {
                 is_pltbl = TRUE;
                 is_array = TRUE;
@@ -3097,7 +3098,6 @@ boolean OCI_API OCI_BindArrayOfTimestamps
 
     OCI_NOT_USED(name)
     OCI_NOT_USED(type)
-    OCI_NOT_USED(code)
     OCI_NOT_USED(nbelem)
 
 #endif
@@ -3132,7 +3132,6 @@ boolean OCI_API OCI_BindInterval
 #else
 
     OCI_NOT_USED(name)
-    OCI_NOT_USED(code)
 
 #endif
 
@@ -3171,7 +3170,6 @@ boolean OCI_API OCI_BindArrayOfIntervals
 
     OCI_NOT_USED(name)
     OCI_NOT_USED(type)
-    OCI_NOT_USED(code)
     OCI_NOT_USED(nbelem)
 
 #endif
@@ -3264,7 +3262,10 @@ boolean OCI_API OCI_BindArrayOfLobs
     OCI_LIB_CALL_ENTER(boolean, FALSE)
 
     OCI_CHECK_BIND_CALL(stmt, name, data, OCI_IPC_LOB, FALSE)
+
+#if OCI_VERSION_COMPILE >= OCI_9_0
     OCI_CHECK_ENUM_VALUE(stmt->con, stmt, type, LobTypeValues, OTEXT("Lob type"))
+#endif 
 
     call_status = OCI_BindData(stmt, data, sizeof(OCILobLocator*), name, OCI_CDT_LOB,
                                OCI_ExternalSubTypeToSQLType(OCI_CDT_LOB, type),
@@ -3784,7 +3785,10 @@ boolean OCI_API OCI_RegisterLob
     OCI_LIB_CALL_ENTER(boolean, FALSE)
 
     OCI_CHECK_REGISTER_CALL(stmt, name)
+
+#if OCI_VERSION_COMPILE >= OCI_9_0
     OCI_CHECK_ENUM_VALUE(stmt->con, stmt, type, LobTypeValues, OTEXT("Lob type"))
+#endif
 
     call_status = OCI_BindData(stmt, NULL, sizeof(OCILobLocator*), name, OCI_CDT_LOB,
                                OCI_ExternalSubTypeToSQLType(OCI_CDT_LOB, type),

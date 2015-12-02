@@ -1064,7 +1064,8 @@ int OCI_ObjectGetAttrIndex
 (
     OCI_Object  *obj,
     const otext *attr,
-    int          type
+    int          type,
+    boolean      check
 );
 
 void * OCI_ObjectGetAttr
@@ -1271,7 +1272,7 @@ boolean OCI_API OCI_ExecuteInternal
 
 size_t OCI_StringLength
 (
-    void  *ptr,
+    void const  *ptr,
     size_t size_elem
 );
 
@@ -1354,6 +1355,13 @@ boolean OCI_StringToStringPtr
     OCIString  **str,
     OCIError    *err,
     const otext *value
+);
+
+boolean OCI_StringFreeStringPtr
+(
+    OCIEnv      *env,
+    OCIString  **str,
+    OCIError    *err
 );
 
 unsigned int OCI_StringGetFromType
