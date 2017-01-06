@@ -1,42 +1,28 @@
 /*
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |                               OCILIB - C Driver for Oracle                              |
-    |                                                                                         |
-    |                                (C Wrapper for Oracle OCI)                               |
-    |                                                                                         |
-    |                              Website : http://www.ocilib.net                            |
-    |                                                                                         |
-    |             Copyright (c) 2007-2015 Vincent ROGIER <vince.rogier@ocilib.net>            |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |             This library is free software; you can redistribute it and/or               |
-    |             modify it under the terms of the GNU Lesser General Public                  |
-    |             License as published by the Free Software Foundation; either                |
-    |             version 2 of the License, or (at your option) any later version.            |
-    |                                                                                         |
-    |             This library is distributed in the hope that it will be useful,             |
-    |             but WITHOUT ANY WARRANTY; without even the implied warranty of              |
-    |             MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU           |
-    |             Lesser General Public License for more details.                             |
-    |                                                                                         |
-    |             You should have received a copy of the GNU Lesser General Public            |
-    |             License along with this library; if not, write to the Free                  |
-    |             Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.          |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-*/
-
-/* --------------------------------------------------------------------------------------------- *
- * $Id: typeinfo.c, Vincent Rogier $
- * --------------------------------------------------------------------------------------------- */
+ * OCILIB - C Driver for Oracle (C Wrapper for Oracle OCI)
+ *
+ * Website: http://www.ocilib.net
+ *
+ * Copyright (c) 2007-2016 Vincent ROGIER <vince.rogier@ocilib.net>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "ocilib_internal.h"
 
 /* ********************************************************************************************* *
-*                             PRIVATE VARIABLES
-* ********************************************************************************************* */
+ *                             PRIVATE VARIABLES
+ * ********************************************************************************************* */
 
 static unsigned int TypeInfoTypeValues[] = { OCI_TIF_TABLE, OCI_TIF_VIEW, OCI_TIF_TYPE };
 
@@ -209,7 +195,7 @@ OCI_TypeInfo * OCI_API OCI_TypeInfoGet
         {
             otext buffer[(OCI_SIZE_OBJ_NAME * 2) + 2] = OTEXT("");
 
-            size_t  size    = sizeof(buffer)/sizeof(otext);
+            size_t  max_chars = sizeof(buffer) / sizeof(otext) - 1;
             dbtext *dbstr1  = NULL;
             int     dbsize1 = -1;
             sb4     pbsp    = 1;
@@ -220,13 +206,14 @@ OCI_TypeInfo * OCI_API OCI_TypeInfoGet
 
             if (typinf->schema && typinf->schema[0])
             {
-                str   = ostrncat(buffer, typinf->schema, size);
-                size -= ostrlen(typinf->schema);
-                str   = ostrncat(str, OTEXT("."), size);
-                size -= (size_t) 1;
+                str = ostrncat(buffer, typinf->schema, max_chars);
+                max_chars -= ostrlen(typinf->schema);
+
+                str = ostrncat(str, OTEXT("."), max_chars);
+                max_chars -= (size_t)1;
             }
 
-            ostrncat(str, typinf->name, size);
+            ostrncat(str, typinf->name, max_chars);
 
             dbstr1 = OCI_StringGetOracleString(str, &dbsize1);
 

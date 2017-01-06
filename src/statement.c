@@ -1,42 +1,28 @@
 /*
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |                               OCILIB - C Driver for Oracle                              |
-    |                                                                                         |
-    |                                (C Wrapper for Oracle OCI)                               |
-    |                                                                                         |
-    |                              Website : http://www.ocilib.net                            |
-    |                                                                                         |
-    |             Copyright (c) 2007-2015 Vincent ROGIER <vince.rogier@ocilib.net>            |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |             This library is free software; you can redistribute it and/or               |
-    |             modify it under the terms of the GNU Lesser General Public                  |
-    |             License as published by the Free Software Foundation; either                |
-    |             version 2 of the License, or (at your option) any later version.            |
-    |                                                                                         |
-    |             This library is distributed in the hope that it will be useful,             |
-    |             but WITHOUT ANY WARRANTY; without even the implied warranty of              |
-    |             MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU           |
-    |             Lesser General Public License for more details.                             |
-    |                                                                                         |
-    |             You should have received a copy of the GNU Lesser General Public            |
-    |             License along with this library; if not, write to the Free                  |
-    |             Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.          |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-*/
-
-/* --------------------------------------------------------------------------------------------- *
- * $Id: statement.c, Vincent Rogier $
- * --------------------------------------------------------------------------------------------- */
+ * OCILIB - C Driver for Oracle (C Wrapper for Oracle OCI)
+ *
+ * Website: http://www.ocilib.net
+ *
+ * Copyright (c) 2007-2016 Vincent ROGIER <vince.rogier@ocilib.net>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "ocilib_internal.h"
 
 /* ********************************************************************************************* *
-*                             PRIVATE VARIABLES
-* ********************************************************************************************* */
+ *                             PRIVATE VARIABLES
+ * ********************************************************************************************* */
 
 #if OCI_VERSION_COMPILE >= OCI_9_0
 static unsigned int TimestampTypeValues[]  = { OCI_TIMESTAMP, OCI_TIMESTAMP_TZ, OCI_TIMESTAMP_LTZ };
@@ -164,16 +150,9 @@ boolean OCI_BindCheck
                                                  (dvoid **) (void *) &bnd_stmt->stmt,
                                                  (ub4) OCI_HTYPE_STMT,
                                                  (size_t) 0, (dvoid **) NULL));
-            if (res)
-            {
-                ub4 size = 0;
 
-                size = bnd_stmt->prefetch_size ? bnd_stmt->prefetch_size : OCI_PREFETCH_SIZE;
-                res  = (res && OCI_SetPrefetchSize(bnd_stmt, size));
-
-                size = bnd_stmt->fetch_size ? bnd_stmt->fetch_size : OCI_FETCH_SIZE;
-                res  = (res && OCI_SetFetchSize(bnd_stmt, size));
-            }
+            res = (res && OCI_SetPrefetchSize(stmt, stmt->prefetch_size));
+            res = (res && OCI_SetFetchSize(stmt, stmt->fetch_size));
         }
 
         if ((bnd->direction & OCI_BDM_IN) ||
@@ -249,11 +228,16 @@ boolean OCI_BindCheck
 
                 /* update bind object indicator pointer with object indicator */
 
-                if (OCI_CDT_OBJECT == bnd->type)
+                if (OCI_CDT_OBJECT == bnd->type && ind)
                 {
                    if (*ind != ((sb2) OCI_IND_NULL) && bnd->buffer.data)
                    {
-                        bnd->buffer.obj_inds[0] = ((OCI_Object *) bnd->input)->tab_ind;
+                        OCI_Object *obj = (OCI_Object *)bnd->input;
+
+                        if (obj)
+                        {
+                            bnd->buffer.obj_inds[0] = obj->tab_ind;
+                        }
                    }
                    else
                    {
@@ -270,7 +254,7 @@ boolean OCI_BindCheck
             }
             else
             {
-                for (j = 0; j < bnd->buffer.count; j++, ind++)
+                for (j = 0; j < bnd->buffer.count && ind; j++, ind++)
                 {
 
                     /* - For big integer (64 bits), we use an OCINumber.
@@ -315,7 +299,7 @@ boolean OCI_BindCheck
                         }
                         else
                         {
-                            if (bnd->input[j])
+                            if (bnd->input[j] && bnd->buffer.data)
                             {
                                 bnd->buffer.data[j] = ((OCI_Datatype *) bnd->input[j])->handle;
                             }
@@ -328,9 +312,9 @@ boolean OCI_BindCheck
                         (OCI_CDT_NUMERIC != bnd->type) && 
                         (OCI_CDT_TEXT    != bnd->type) &&
                         (OCI_CDT_RAW     != bnd->type) &&
-                        (OCI_CDT_OBJECT  != bnd->type))
+                        (OCI_CDT_OBJECT  != bnd->type) && ind)
                     {
-                        if (ind && *ind != ((sb2) OCI_IND_NULL))
+                        if (*ind != ((sb2) OCI_IND_NULL))
                         {
                             if (bnd->input[j])
                             {
@@ -345,11 +329,16 @@ boolean OCI_BindCheck
 
                     /* update bind object indicator pointer with object indicator */
 
-                    if (OCI_CDT_OBJECT == bnd->type)
+                    if (OCI_CDT_OBJECT == bnd->type && ind)
                     {
                         if (*ind != ((sb2) OCI_IND_NULL) && bnd->buffer.data)
                         {
-                            bnd->buffer.obj_inds[j] = ((OCI_Object *) bnd->input[j])->tab_ind;
+                            OCI_Object *obj = (OCI_Object *) bnd->input[j];
+
+                            if (obj)
+                            {
+                                bnd->buffer.obj_inds[j] = obj->tab_ind;
+                            }
                         }
                         else
                         {
@@ -1248,6 +1237,8 @@ OCI_Statement * OCI_StatementInit
         stmt->bind_mode       = OCI_BIND_BY_NAME;
         stmt->long_mode       = OCI_LONG_EXPLICIT;
         stmt->bind_alloc_mode = OCI_BAM_EXTERNAL;
+        stmt->fetch_size      = OCI_FETCH_SIZE;
+        stmt->prefetch_size   = OCI_PREFETCH_SIZE;
 
         res = TRUE;
 
@@ -1288,8 +1279,10 @@ OCI_Statement * OCI_StatementInit
                 }
             }
 
-            res = (res && OCI_SetPrefetchSize(stmt, OCI_PREFETCH_SIZE));
-            res = (res && OCI_SetFetchSize(stmt, OCI_FETCH_SIZE));
+            /* Setting fetch attributes here as the statement is already prepared */
+
+            res = (res && OCI_SetPrefetchSize(stmt, stmt->prefetch_size));
+            res = (res && OCI_SetFetchSize(stmt, stmt->fetch_size));
         }
         else
         {
@@ -1754,15 +1747,10 @@ boolean OCI_API OCI_PrepareInternal
 
     if (res)
     {
-        ub4 size = 0;
-
         stmt->status = OCI_STMT_PREPARED;
 
-        size = stmt->prefetch_size ? stmt->prefetch_size : OCI_PREFETCH_SIZE;
-        res  = (res && OCI_SetPrefetchSize(stmt, size));
-
-        size = stmt->fetch_size ? stmt->fetch_size : OCI_FETCH_SIZE;
-        res  = (res && OCI_SetFetchSize(stmt, size));
+        res = (res && OCI_SetPrefetchSize(stmt, stmt->prefetch_size));
+        res = (res && OCI_SetFetchSize(stmt, stmt->fetch_size));
     }
 
     return res;
@@ -1833,12 +1821,16 @@ boolean OCI_API OCI_ExecuteInternal
 
     /* Oracle execute call */
 
-    status = OCIStmtExecute(stmt->con->cxt, stmt->stmt, stmt->con->err, iters,
-                            (ub4) 0, (OCISnapshot *) NULL, (OCISnapshot *) NULL, mode);
+    if (res)
+    {
 
-    /* reset input binds indicators status even if execution failed */
+        status = OCIStmtExecute(stmt->con->cxt, stmt->stmt, stmt->con->err, iters,
+                                (ub4)0, (OCISnapshot *)NULL, (OCISnapshot *)NULL, mode);
 
-    OCI_BindReset(stmt);
+        /* reset input binds indicators status even if execution failed */
+
+        OCI_BindReset(stmt);
+    } 
 
     /* check result */
 
@@ -4048,10 +4040,10 @@ boolean OCI_API OCI_SetPrefetchSize
 
     call_status = TRUE;
 
+    stmt->prefetch_size = size;
+
     if (stmt->stmt)
     {
-        stmt->prefetch_size = size;
-
         OCI_CALL1
         (
             call_status, stmt->con, stmt,
@@ -4103,10 +4095,10 @@ boolean OCI_API OCI_SetPrefetchMemory
 
     call_status = TRUE;
 
+    stmt->prefetch_mem = size;
+
     if (stmt->stmt)
     {
-        stmt->prefetch_mem = size;
-
         OCI_CALL1
         (
             call_status, stmt->con, stmt,

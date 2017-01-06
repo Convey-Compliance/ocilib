@@ -1,43 +1,36 @@
 /*
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |                               OCILIB - C Driver for Oracle                              |
-    |                                                                                         |
-    |                                (C Wrapper for Oracle OCI)                               |
-    |                                                                                         |
-    |                              Website : http://www.ocilib.net                            |
-    |                                                                                         |
-    |             Copyright (c) 2007-2015 Vincent ROGIER <vince.rogier@ocilib.net>            |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |             This library is free software; you can redistribute it and/or               |
-    |             modify it under the terms of the GNU Lesser General Public                  |
-    |             License as published by the Free Software Foundation; either                |
-    |             version 2 of the License, or (at your option) any later version.            |
-    |                                                                                         |
-    |             This library is distributed in the hope that it will be useful,             |
-    |             but WITHOUT ANY WARRANTY; without even the implied warranty of              |
-    |             MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU           |
-    |             Lesser General Public License for more details.                             |
-    |                                                                                         |
-    |             You should have received a copy of the GNU Lesser General Public            |
-    |             License along with this library; if not, write to the Free                  |
-    |             Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.          |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-*/
-
-/* --------------------------------------------------------------------------------------------- *
- * $Id: library.c, Vincent Rogier $
- * --------------------------------------------------------------------------------------------- */
+ * OCILIB - C Driver for Oracle (C Wrapper for Oracle OCI)
+ *
+ * Website: http://www.ocilib.net
+ *
+ * Copyright (c) 2007-2016 Vincent ROGIER <vince.rogier@ocilib.net>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "ocilib_internal.h"
 
 /* ********************************************************************************************* *
  *                             INTERNAL VARIABLES
  * ********************************************************************************************* */
+
 OCI_Library OCILib;
+
+char * EnvironmentVarNames[OCI_VARS_COUNT] =
+{
+    VAR_OCILIB_WORKAROUND_UTF16_COLUMN_NAME
+};
+
 
 OCI_SQLCmdInfo SQLCmds[OCI_SQLCMD_COUNT] =
 {
@@ -736,11 +729,20 @@ boolean OCI_API OCI_Initialize
 
     OCILib.env_mode             = mode;
     OCILib.charset              = (sizeof(otext) == sizeof(wchar_t)) ? OCI_CHAR_WIDE : OCI_CHAR_ANSI;
-    OCILib.use_wide_char_conv   = (OCILib.charset == OCI_CHAR_WIDE &&  (WCHAR_MAX == WCHAR_4_BYTES));
+    OCILib.use_wide_char_conv   = (OCILib.charset == OCI_CHAR_WIDE && (WCHAR_MAX == WCHAR_4_BYTES));
 
     for (i = 0; i < OCI_FMT_COUNT; i++)
     {
         OCILib.formats[i] = ostrdup(FormatDefaultValues[i]);
+    }
+
+    /* load any specific environment variable */
+
+    for (i = 0; i < OCI_VARS_COUNT; i++)
+    {
+        char *value = getenv(EnvironmentVarNames[i]);
+
+        OCILib.env_vars[i] = value && (ocistrcasecmp(value, OCI_VARS_TRUE_VALUE) == 0 || atoi(value) == 1);
     }
 
     /* test for UTF8 environment */
@@ -802,13 +804,13 @@ boolean OCI_API OCI_Initialize
 
     #endif
 
-    if ((len > (size_t) 0) && (len < sizeof(path)) && (OCI_CHAR_SLASH != path[len - (size_t) 1]))
+    if ((len > (size_t) 0) && (len < sizeof(path) -1) && (OCI_CHAR_SLASH != path[len - (size_t) 1]))
     {
         path[len] = OCI_CHAR_SLASH;
         len++;
     }
 
-    strncat(path, OCI_DL_ANSI_NAME, sizeof(path) - len);
+    strncat(path, OCI_DL_ANSI_NAME, sizeof(path) - len - 1);
 
     OCILib.lib_handle = LIB_OPEN(path);
 
@@ -1324,7 +1326,7 @@ boolean OCI_API OCI_Initialize
         {
             OCILib.version_runtime = OCI_9_0;
         }
-        else if (OCIThreadProcessInit)
+        else if (OCIThreadCreate)
         {
             OCILib.version_runtime = OCI_8_1;
         }

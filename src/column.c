@@ -1,36 +1,22 @@
 /*
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |                               OCILIB - C Driver for Oracle                              |
-    |                                                                                         |
-    |                                (C Wrapper for Oracle OCI)                               |
-    |                                                                                         |
-    |                              Website : http://www.ocilib.net                            |
-    |                                                                                         |
-    |             Copyright (c) 2007-2015 Vincent ROGIER <vince.rogier@ocilib.net>            |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |             This library is free software; you can redistribute it and/or               |
-    |             modify it under the terms of the GNU Lesser General Public                  |
-    |             License as published by the Free Software Foundation; either                |
-    |             version 2 of the License, or (at your option) any later version.            |
-    |                                                                                         |
-    |             This library is distributed in the hope that it will be useful,             |
-    |             but WITHOUT ANY WARRANTY; without even the implied warranty of              |
-    |             MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU           |
-    |             Lesser General Public License for more details.                             |
-    |                                                                                         |
-    |             You should have received a copy of the GNU Lesser General Public            |
-    |             License along with this library; if not, write to the Free                  |
-    |             Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.          |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-*/
-
-/* --------------------------------------------------------------------------------------------- *
- * $Id: column.c, Vincent Rogier $
- * --------------------------------------------------------------------------------------------- */
+ * OCILIB - C Driver for Oracle (C Wrapper for Oracle OCI)
+ *
+ * Website: http://www.ocilib.net
+ *
+ * Copyright (c) 2007-2016 Vincent ROGIER <vince.rogier@ocilib.net>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "ocilib_internal.h"
 
@@ -374,26 +360,53 @@ boolean OCI_ColumnDescribe
 
     if (res)
     {
-        dbtext *dbstr    = NULL;
-        int     dbsize   = 0;
-        ub4     attrname = (OCI_DESC_COLLECTION == ptype) ? OCI_ATTR_TYPE_NAME : OCI_ATTR_NAME;
 
-        OCI_CALL1
-        (
-            res, con, stmt,
+#if defined(OCI_CHARSET_WIDE)
 
-            OCIAttrGet((dvoid *) param, (ub4) OCI_DTYPE_PARAM, (dvoid *) &dbstr,
-                       (ub4 *) &dbsize, (ub4) attrname, con->err)
-        )
+        // Ugly workaround for Oracle Bug 9838993 
 
-        if (res && dbstr)
+        if ((OCI_DESC_RESULTSET == ptype) && (OCILib.env_vars[OCI_VARS_WORKAROUND_UTF16_COLUMN_NAME]))
         {
-            col->name = OCI_StringDuplicateFromOracleString(dbstr, dbcharcount(dbsize));
+            OCIParamStruct *param_struct = (OCIParamStruct*) param;
 
-            res = (NULL != col->name);
+            if (param_struct && param_struct->column_info && param_struct->column_info->name)
+            {
+                size_t char_count = OCI_StringLength(param_struct->column_info->name, sizeof(char));
+                col->name = OCI_MemAlloc(OCI_IPC_STRING, sizeof(otext), char_count + 1, 1);
+                OCI_StringAnsiToNative(param_struct->column_info->name, col->name, (int) char_count);
+
+                res = TRUE;
+            }
+            else
+            {
+                res = FALSE;
+            }
+        }
+        else
+
+#endif
+
+        {
+            dbtext *dbstr    = NULL;
+            int     dbsize   = 0;
+            ub4     attrname = (OCI_DESC_COLLECTION == ptype) ? OCI_ATTR_TYPE_NAME : OCI_ATTR_NAME;
+                      
+             OCI_CALL1
+            (
+                res, con, stmt,
+
+                OCIAttrGet((dvoid *) param, (ub4) OCI_DTYPE_PARAM, (dvoid *) &dbstr,
+                           (ub4 *) &dbsize, (ub4) attrname, con->err)
+            )
+
+            if (res && dbstr)
+            {
+                col->name = OCI_StringDuplicateFromOracleString(dbstr, dbcharcount(dbsize));
+
+                res = (NULL != col->name);
+            }
         }
     }
-
     /* user type descriptor */
 
     if (

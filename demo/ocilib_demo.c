@@ -1,32 +1,22 @@
 /*
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |                               OCILIB - C Driver for Oracle                              |
-    |                                                                                         |
-    |                                (C Wrapper for Oracle OCI)                               |
-    |                                                                                         |
-    |                              Website : http://www.ocilib.net                            |
-    |                                                                                         |
-    |             Copyright (c) 2007-2015 Vincent ROGIER <vince.rogier@ocilib.net>            |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-    |                                                                                         |
-    |             This library is free software; you can redistribute it and/or               |
-    |             modify it under the terms of the GNU Lesser General Public                  |
-    |             License as published by the Free Software Foundation; either                |
-    |             version 2 of the License, or (at your option) any later version.            |
-    |                                                                                         |
-    |             This library is distributed in the hope that it will be useful,             |
-    |             but WITHOUT ANY WARRANTY; without even the implied warranty of              |
-    |             MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU           |
-    |             Lesser General Public License for more details.                             |
-    |                                                                                         |
-    |             You should have received a copy of the GNU Lesser General Public            |
-    |             License along with this library; if not, write to the Free                  |
-    |             Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.          |
-    |                                                                                         |
-    +-----------------------------------------------------------------------------------------+
-*/
+ * OCILIB - C Driver for Oracle (C Wrapper for Oracle OCI)
+ *
+ * Website: http://www.ocilib.net
+ *
+ * Copyright (c) 2007-2016 Vincent ROGIER <vince.rogier@ocilib.net>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "ocilib_demo.h"
 
@@ -169,7 +159,7 @@ int omain(int argc, oarg* argv[])
 
     /* INITIALIZE OCI ------------------------------------------------------- */
 
-    if (!OCI_Initialize(err_handler, home, OCI_ENV_DEFAULT))
+    if (!OCI_Initialize(err_handler, home, OCI_ENV_DEFAULT | OCI_ENV_THREADED))
         return EXIT_FAILURE;
 
     OCI_EnableWarnings(TRUE);
@@ -214,9 +204,7 @@ int omain(int argc, oarg* argv[])
 
     print_text("\npress any key to exit...");
 
-    getchar();
-
-    return EXIT_SUCCESS;
+   return  getchar() != 0;
 }
 
 /* --------------------------------------------------------------------------------------------- *
@@ -270,14 +258,14 @@ void print_version(void)
     print_frmt("OCILIB revision version : %i\n\n", OCILIB_REVISION_VERSION);
 
     /* print all versions */
-    print_frmt("OCI compile     version : %i\n",   OCI_VER_MAJ(OCI_GetOCICompileVersion()));
-    print_frmt("OCI runtime     version : %i\n\n", OCI_VER_MAJ(OCI_GetOCIRuntimeVersion()));
+    print_frmt("OCI compile     version : %u\n",   OCI_VER_MAJ(OCI_GetOCICompileVersion()));
+    print_frmt("OCI runtime     version : %u\n\n", OCI_VER_MAJ(OCI_GetOCIRuntimeVersion()));
 
-    print_frmt("Server major    version : %i\n",   OCI_GetServerMajorVersion(cn));
-    print_frmt("Server minor    version : %i\n",   OCI_GetServerMinorVersion(cn));
-    print_frmt("Server revision version : %i\n\n", OCI_GetServerRevisionVersion(cn));
+    print_frmt("Server major    version : %u\n",   OCI_GetServerMajorVersion(cn));
+    print_frmt("Server minor    version : %u\n",   OCI_GetServerMinorVersion(cn));
+    print_frmt("Server revision version : %u\n\n", OCI_GetServerRevisionVersion(cn));
 
-    print_frmt("Connection      version : %i\n\n", OCI_GetVersionConnection(cn));
+    print_frmt("Connection      version : %u\n\n", OCI_GetVersionConnection(cn));
 
     print_text("\n>>>>> SERVER VERSION BANNER \n\n");
 
@@ -442,7 +430,7 @@ void test_format(void)
         print_text("\n");
    }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 }
 
 
@@ -519,7 +507,7 @@ void test_fetch(void)
         print_text("\n");
     }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 }
 
 /* --------------------------------------------------------------------------------------------- *
@@ -549,7 +537,7 @@ void test_bind1(void)
         print_text("\n");
     }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 }
 
 /* --------------------------------------------------------------------------------------------- *
@@ -619,7 +607,7 @@ void test_bind2(void)
 
     OCI_Execute(st);
 
-    print_frmt("Row inserted : %d\n\n", OCI_GetAffectedRows(st));
+    print_frmt("Row inserted : %u\n\n", OCI_GetAffectedRows(st));
 
     /* free objets */
 
@@ -676,7 +664,7 @@ void test_piecewise_insert(void)
             OCI_LongWrite(lg, buffer, n);
         }
 
-        print_frmt("\n%d bytes written\n", OCI_LongGetSize(lg));
+        print_frmt("\n%u bytes written\n", OCI_LongGetSize(lg));
         fclose(f);
 
         OCI_LongFree(lg);
@@ -709,10 +697,10 @@ void test_piecewise_fetch(void)
 
         while ((n = OCI_LongRead(lg, buffer, sizeof(buffer)))) {}
 
-        print_frmt("\n%d bytes read\n", OCI_LongGetSize(lg));
+        print_frmt("\n%u bytes read\n", OCI_LongGetSize(lg));
     }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 
     print_text("\n>>>>> TEST LONG MAPPED TO STRING\n\n");
 
@@ -726,10 +714,10 @@ void test_piecewise_fetch(void)
         const otext *long_str = OCI_GetString(rs, 1);
 
         print_ostr(long_str);
-        print_frmt("\n%d bytes read\n", ostrlen(long_str));
+        print_frmt("\n%d bytes read\n", (int) ostrlen(long_str));
     }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 }
 
 /* --------------------------------------------------------------------------------------------- *
@@ -764,7 +752,7 @@ void test_lob(void)
 
     OCI_Commit(cn);
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 }
 
 /* --------------------------------------------------------------------------------------------- *
@@ -820,7 +808,7 @@ void test_ref_cursor(void)
         print_text("\n");
     }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 
     OCI_StatementFree(st2);
 }
@@ -1091,7 +1079,7 @@ void test_returning(void)
         print_text("\n");
    }
 
-    print_frmt("\n%d row(s) fetched\n", OCI_GetRowCount(rs));
+    print_frmt("\n%u row(s) fetched\n", OCI_GetRowCount(rs));
 
     OCI_Commit(cn);
 }
@@ -1192,7 +1180,7 @@ void test_returning_array(void)
 
     OCI_Execute(st);
 
-    print_frmt("Row inserted : %d\n\n", OCI_GetAffectedRows(st));
+    print_frmt("Row inserted : %u\n\n", OCI_GetAffectedRows(st));
 
     /* free objects */
 
@@ -1295,7 +1283,7 @@ void test_object_insert(void)
     OCI_BindObject(st, OTEXT(":obj"), obj);
     OCI_Execute(st);
 
-    print_frmt("\n%d row(s) inserted\n", OCI_GetAffectedRows(st));
+    print_frmt("\n%u row(s) inserted\n", OCI_GetAffectedRows(st));
 
     OCI_Commit(cn);
 
@@ -1412,7 +1400,7 @@ void test_scrollable_cursor(void)
         rs = OCI_GetResultset(st);
 
         if (OCI_FetchLast(rs))
-            print_frmt("... Resultset contains %i rows\n\n", OCI_GetRowCount(rs));
+            print_frmt("... Resultset contains %u rows\n\n", OCI_GetRowCount(rs));
 
         print_text("... Go to row 1\n");
         if (OCI_FetchFirst(rs))
@@ -1421,14 +1409,14 @@ void test_scrollable_cursor(void)
             print_text("\n");
         }
 
-        print_frmt("... Enumerate from row 2 to row %i\n", OCI_GetRowCount(rs));
+        print_frmt("... Enumerate from row 2 to row %u\n", OCI_GetRowCount(rs));
         while (OCI_FetchNext(rs))
         {
             print_ostr(OCI_GetString(rs, 1));
             print_text("\n");
         }
 
-        print_frmt("... Enumerate from row %i back to row 1\n", OCI_GetRowCount(rs)-1);
+        print_frmt("... Enumerate from row %u back to row 1\n", OCI_GetRowCount(rs)-1);
         while (OCI_FetchPrev(rs))
         {
             print_ostr(OCI_GetString(rs, 1));
@@ -1486,7 +1474,7 @@ void test_collection(void)
     iter = OCI_IterCreate(coll);
     elem = OCI_IterGetNext(iter);
 
-    print_frmt("Department ID #%d\n\n", i);
+    print_frmt("Department ID #%u\n\n", i);
 
     while (elem != NULL)
     {
@@ -1713,7 +1701,7 @@ void test_directpath(void)
 
             if (res)
             {
-                print_frmt("%04d row(s) loaded\n", OCI_DirPathGetRowCount(dp));
+                print_frmt("%04u row(s) loaded\n", OCI_DirPathGetRowCount(dp));
             }
 
             /* free direct path object */
